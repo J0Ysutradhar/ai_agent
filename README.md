@@ -10,9 +10,20 @@ A modern, responsive Django web application with user authentication, profile ma
 - ✅ Dashboard with statistics and quick actions
 - ✅ AI agent configuration with Facebook Page ID and system prompt
 - ✅ Auto-generated webhook URL with copy functionality
+- ✅ Public API for accessing AI configuration
+- ✅ **Subscription System**: Admin-assigned time packages (7, 15, 30 days) with auto-expiration
 - ✅ Modern UI with Tailwind CSS
 - ✅ SQLite3 database
 - ✅ Mobile-responsive design
+
+## Subscription System
+
+The application includes a built-in subscription management system:
+
+1. **Admin Assignment**: Admins can select users in the Django admin panel and assign 7, 15, or 30-day packages.
+2. **Dashboard Tracking**: Users can see their active package and expiration date on the dashboard.
+3. **Access Control**: Middleware automatically blocks access to the panel once the subscription expires.
+4. **Expiration Handling**: Expired users are redirected to a "Package Expired" page with recharge instructions.
 
 ## Tech Stack
 

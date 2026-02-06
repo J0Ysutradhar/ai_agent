@@ -51,8 +51,19 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     mobile_number = models.CharField(max_length=20, blank=True)
     
+    # Subscription fields
+    subscription_expiry = models.DateTimeField(null=True, blank=True)
+    package_name = models.CharField(max_length=50, blank=True, default='Free Trial')
+    
     def __str__(self):
         return f"{self.user.email}'s profile"
+    
+    def is_subscription_active(self):
+        """Check if subscription is active"""
+        from django.utils import timezone
+        if not self.subscription_expiry:
+            return True # Allow access if no expiry set (or change logic as needed)
+        return timezone.now() < self.subscription_expiry
 
 
 class AIAgentConfig(models.Model):

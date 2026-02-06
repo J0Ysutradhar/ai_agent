@@ -107,3 +107,10 @@ def ai_agent_view(request):
         'webhook_url': webhook_url,
         'ai_config': ai_config
     })
+
+
+@login_required
+def subscription_expired(request):
+    """Display subscription expired page"""
+    return render(request, 'accounts/subscription_expired.html')
+

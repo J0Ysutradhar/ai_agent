@@ -12,5 +12,8 @@ urlpatterns = [
     
     # API endpoints
     path('api/user/<str:admin_password>/<str:email_prefix>/<str:field>/', api_get_user_config, name='api_user_config'),
+    
+    # Subscription
+    path('subscription-expired/', views.subscription_expired, name='subscription_expired'),
 ]
 
