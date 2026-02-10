@@ -75,7 +75,7 @@
                 </div>
                 {% endif %}
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">{{ user.profile.name|default:user.email }}</p>
+                    <a href="{% url 'profile' %}"><p class="text-sm font-medium text-gray-900 truncate">{{ user.profile.name|default:user.email }}</p></a>
                     <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
                 </div>
             </div>
