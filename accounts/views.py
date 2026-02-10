@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.contrib import messages
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, UserProfileForm, AIAgentConfigForm, KYCUploadForm
 from .models import UserProfile, AIAgentConfig
@@ -122,8 +123,17 @@ def ai_agent_view(request):
         form = AIAgentConfigForm(request.POST, instance=ai_config)
         if form.is_valid():
             form.save()
+            
+            # Handle AJAX request for auto-save
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success', 'message': 'Variable saved'})
+                
             messages.success(request, 'AI Agent configuration saved successfully!')
             return redirect('ai_agent')
+        
+        # Handle AJAX errors
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
     else:
         form = AIAgentConfigForm(instance=ai_config)
     

@@ -4,17 +4,15 @@ A modern, responsive Django web application with user authentication, profile ma
 
 ## Features
 
-- ✅ Email-based user authentication (registration & login)
-- ✅ Responsive side navigation menu
-- ✅ User profile management (name, profile picture, mobile number)
-- ✅ Dashboard with statistics and quick actions
-- ✅ AI agent configuration with Facebook Page ID and system prompt
-- ✅ Auto-generated webhook URL with copy functionality
-- ✅ Public API for accessing AI configuration
+- ✅ **KYC Verification**: Mandatory document upload (NID/Passport) and admin approval process
+- ✅ **AI Agent Control**: Global toggle to enable/disable the AI agent
+- ✅ **Blocked Posts**: Dynamic list to block AI responses on specific Facebook posts
+- ✅ **Auto-Save**: Real-time saving of AI configuration with visual feedback
+- ✅ **Email Notifications**: Automatic emails for KYC status changes (Approved/Rejected)
+- ✅ **Public API**: Extended endpoints for retrieving user configuration and status
 - ✅ **Subscription System**: Admin-assigned time packages (7, 15, 30 days) with auto-expiration
-- ✅ Modern UI with Tailwind CSS
-- ✅ SQLite3 database
-- ✅ Mobile-responsive design
+- ✅ **Modern UI**: Polished interface with Tailwind CSS and responsive design
+- ✅ **SQLite3 Database**: Lightweight and easy to set up
 
 ## Subscription System
 
@@ -81,11 +79,29 @@ python manage.py runserver
 4. Click "Save Changes"
 
 ### AI Agent Configuration
-1. Click "AI Agent" in the sidebar
-2. Enter your Facebook Page ID
-3. Enter your AI system prompt
-4. Your webhook URL will be displayed: `https://ftn8nbd.onrender.com/webhook-test/{your-email-prefix}`
-5. Click "Copy URL" to copy the webhook URL to clipboard
+1. **KYC Verification**: You must be Verified to access this page.
+2. **Toggle Power**: Use the switch to turn your agent On or Off.
+3. **Configuration**: Enter Facebook Page ID, API Key, and System Prompt.
+   - **Auto-Save**: Changes are saved automatically as you type.
+4. **Blocked Posts**: Add Facebook Post IDs to prevent the AI from responding to specific posts.
+5. **Webhook**: Copy the generated URL to your Facebook App settings.
+
+### KYC Verification Process
+1. Go to **Profile** and upload your NID or Passport.
+2. Status will change to **Pending**.
+3. Admin reviews the document in the Django Admin Panel.
+4. Upon **Approval**, you receive an email and gain access to AI features.
+5. If **Rejected**, you receive an email with instructions to resubmit.
+
+### API Documentation
+External services can retrieve user configuration via the public API:
+
+**Endpoint**: `/api/user/{admin_password}/{email_prefix}/{field}/`
+
+**Fields**:
+- `ai_agent_status`: Returns `{"status": "on"}` or `{"status": "off"}`.
+- `block_post_ids`: Returns `{"blocked_post_ids": ["123", "456"]}`.
+- `all`: Returns full configuration including status and blocked list.
 
 ## Webhook URL Format
 

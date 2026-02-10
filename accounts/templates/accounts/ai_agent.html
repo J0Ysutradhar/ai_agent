@@ -5,9 +5,12 @@
 {% block content %}
 <div class="p-6 lg:p-8">
     <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-800">AI Agent Configuration</h1>
-        <p class="text-gray-500 mt-2">Configure your AI agent settings and get your webhook URL</p>
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800">AI Agent Configuration</h1>
+            <p class="text-gray-500 mt-2">Configure your AI agent settings and get your webhook URL</p>
+        </div>
+        <div id="save-status" class="text-sm font-medium transition-all duration-300"></div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -310,6 +313,7 @@
         input.value = '';
         syncHiddenField();
         renderPostIds();
+        saveConfig(); // Auto-save
         input.focus();
     }
 
@@ -317,6 +321,7 @@
         postIds.splice(index, 1);
         syncHiddenField();
         renderPostIds();
+        saveConfig(); // Auto-save
     }
 
     // Allow Enter key to add post ID
@@ -327,9 +332,112 @@
         }
     });
 
+    // ====== Auto-Save Logic ======
+    const saveStatusElement = document.getElementById('save-status');
+    const configForm = document.querySelector('form');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function updateSaveStatus(status) {
+        if (!saveStatusElement) return;
+
+        if (status === 'saving') {
+            saveStatusElement.innerHTML = '<span class="flex items-center text-blue-600"><svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...</span>';
+        } else if (status === 'saved') {
+            saveStatusElement.innerHTML = '<span class="flex items-center text-green-600"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All changes saved</span>';
+            setTimeout(() => {
+                // Keep the "Saved" message visible, don't clear it immediately
+            }, 3000);
+        } else if (status === 'error') {
+            saveStatusElement.innerHTML = '<span class="flex items-center text-red-600"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Error saving</span>';
+        }
+    }
+
+    function saveConfig() {
+        updateSaveStatus('saving');
+
+        const formData = new FormData(configForm);
+
+        // Handle checkbox manual serialization if needed, but FormData usually handles it.
+        // However, unchecked checkboxes are not included in FormData.
+        // Our backend handling of `is_active` as required=False handles missing key as False, which is correct.
+
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok');
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    updateSaveStatus('saved');
+
+                    // Update Agent Status Card visual if is_active changed
+                    // (Optional: fetch new status or just update based on form data)
+                    const is_active = configForm.querySelector('[name="is_active"]').checked;
+                    const statusText = document.getElementById('status-text');
+                    const statusIconBg = document.getElementById('status-icon-bg');
+                    const statusIconSvg = document.getElementById('status-icon-svg');
+
+                    if (statusText && statusIconBg && statusIconSvg) {
+                        if (is_active) {
+                            statusText.innerHTML = 'AI Agent is <span class="text-green-600 font-semibold">Active</span>';
+                            statusIconBg.classList.remove('bg-red-100');
+                            statusIconBg.classList.add('bg-green-100');
+                            statusIconSvg.classList.remove('text-red-600');
+                            statusIconSvg.classList.add('text-green-600');
+                        } else {
+                            statusText.innerHTML = 'AI Agent is <span class="text-red-600 font-semibold">Inactive</span>';
+                            statusIconBg.classList.remove('bg-green-100');
+                            statusIconBg.classList.add('bg-red-100');
+                            statusIconSvg.classList.remove('text-green-600');
+                            statusIconSvg.classList.add('text-red-600');
+                        }
+                    }
+                } else {
+                    updateSaveStatus('error');
+                    console.error('Server error:', data.errors);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateSaveStatus('error');
+            });
+    }
+
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    const debouncedSave = debounce(saveConfig, 1000);
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function () {
         initPostIds();
+
+        // Attach listeners to inputs
+        const inputs = configForm.querySelectorAll('input:not([type="hidden"]), textarea');
+        inputs.forEach(input => {
+            if (input.id === 'new-post-id-input') return; // Skip the add post input
+
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.addEventListener('change', saveConfig);
+            } else {
+                input.addEventListener('input', debouncedSave);
+            }
+        });
     });
 </script>
 {% endblock %}
