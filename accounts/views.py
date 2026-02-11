@@ -26,7 +26,7 @@ def report_view(request):
         if new_id:
             ai_config.google_sheet_id = new_id
             ai_config.save()
-            messages.success(request, 'Google Sheet ID updated successfully!')
+            messages.success(request, 'Report ID updated successfully!')
             return redirect('report')
             
     sheet_id = ai_config.google_sheet_id
@@ -76,7 +76,7 @@ def report_view(request):
             data_list = df.values.tolist()
             
             # Pagination
-            paginator = Paginator(data_list, 50) # Show 50 contacts per page
+            paginator = Paginator(data_list, 20) # Show 20 contacts per page
             page_number = request.GET.get('page')
             try:
                 page_obj = paginator.get_page(page_number)
@@ -88,7 +88,7 @@ def report_view(request):
             data = page_obj # For template compatibility if needed, but we'll use page_obj
             
         except Exception as e:
-            error = f"Failed to load report data: {str(e)}"
+            error = f"Failed to load report data: {str('Invalid Report ID, Please Check and try again or contact support. +8801781763345')}"
     
     return render(request, 'accounts/report.html', {
         'data': page_obj if page_obj else data, # Pass page_obj as data to keep template loop working or explicit page_obj
