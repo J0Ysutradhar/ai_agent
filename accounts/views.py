@@ -11,6 +11,9 @@ import io
 import requests
 
 
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 @login_required
 def report_view(request):
     """Fetch and display report from Google Sheet"""
@@ -31,6 +34,7 @@ def report_view(request):
     data = []
     columns = []
     error = None
+    page_obj = None
     
     if sheet_id:
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
@@ -53,13 +57,26 @@ def report_view(request):
             columns = df.columns.tolist()
             df = df.iloc[::-1] # Reverse payload to show most recent at top
             df = df.fillna('') # Replace NaN with empty string
-            data = df.values.tolist()
+            data_list = df.values.tolist()
+            
+            # Pagination
+            paginator = Paginator(data_list, 50) # Show 50 contacts per page
+            page_number = request.GET.get('page')
+            try:
+                page_obj = paginator.get_page(page_number)
+            except PageNotAnInteger:
+                page_obj = paginator.get_page(1)
+            except EmptyPage:
+                page_obj = paginator.get_page(paginator.num_pages)
+                
+            data = page_obj # For template compatibility if needed, but we'll use page_obj
             
         except Exception as e:
             error = f"Failed to load report data: {str(e)}"
     
     return render(request, 'accounts/report.html', {
-        'data': data,
+        'data': page_obj if page_obj else data, # Pass page_obj as data to keep template loop working or explicit page_obj
+        'page_obj': page_obj,
         'columns': columns,
         'error': error,
         'query': request.GET.get('q', ''),
