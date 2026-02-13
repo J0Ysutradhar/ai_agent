@@ -1,7 +1,7 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from .models import CustomUser, AIAgentConfig
+from .models import CustomUser, AIAgentConfig, UserProfile
 
 
 @csrf_exempt
@@ -42,6 +42,15 @@ def api_get_user_config(request, admin_password, email_prefix, field):
         except AIAgentConfig.DoesNotExist:
             return HttpResponse('AI configuration not found for this user', status=404)
         
+        # Check subscription status — if expired, agent is effectively off
+        try:
+            profile = user.profile
+            subscription_active = profile.is_subscription_active()
+        except UserProfile.DoesNotExist:
+            subscription_active = False
+        
+        effective_active = ai_config.is_active and subscription_active
+        
         # Return requested field
         if field == 'fb_page_id':
             return HttpResponse(ai_config.facebook_page_id or '', content_type='text/plain')
@@ -56,11 +65,7 @@ def api_get_user_config(request, admin_password, email_prefix, field):
             return HttpResponse(ai_config.facebook_page_api or '', content_type='text/plain')
         
         elif field == 'ai_agent_status':
-            # Return 'on' or 'off' directly as requested, or JSON if needed. 
-            # Based on user request: "i will get api response whther this agent off or on"
-            # Let's return JSON for clarity but simple text is also an option.
-            # User said: "i will get api response whther this agent off or on" -> implies status text
-            status = 'on' if ai_config.is_active else 'off'
+            status = 'on' if effective_active else 'off'
             return JsonResponse({'status': status})
         
         elif field == 'block_post_ids':
@@ -73,8 +78,9 @@ def api_get_user_config(request, admin_password, email_prefix, field):
             data = {
                 'email': user.email,
                 'email_prefix': user.get_email_prefix(),
-                'ai_agent_status': 'on' if ai_config.is_active else 'off',
-                'is_active': ai_config.is_active,
+                'ai_agent_status': 'on' if effective_active else 'off',
+                'is_active': effective_active,
+                'subscription_active': subscription_active,
                 'fb_page_id': ai_config.facebook_page_id or '',
                 'fb_page_api': ai_config.facebook_page_api or '',
                 'system_prompt': ai_config.system_prompt or '',

@@ -16,8 +16,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Webhook URL Card -->
         <div class="lg:col-span-1 space-y-6">
-            <div
-                class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-2xl p-6 text-white  top-6">
+            <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-2xl p-6 text-white  top-6">
                 <div class="flex items-center space-x-3 mb-4">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -56,14 +55,18 @@
                     <div>
                         <h3 class="text-lg font-bold text-gray-800">Agent Status</h3>
                         <p class="text-sm text-gray-500 mt-1" id="status-text">
+                            {% if subscription_active %}
                             {% if ai_config.is_active %}AI Agent is <span
                                 class="text-green-600 font-semibold">Active</span>{% else %}AI Agent is <span
                                 class="text-red-600 font-semibold">Inactive</span>{% endif %}
+                            {% else %}
+                            AI Agent is <span class="text-red-600 font-semibold">Disabled (Subscription Expired)</span>
+                            {% endif %}
                         </p>
                     </div>
-                    <div class="flex-shrink-0 p-3 rounded-full {% if ai_config.is_active %}bg-green-100{% else %}bg-red-100{% endif %}"
+                    <div class="flex-shrink-0 p-3 rounded-full {% if ai_config.is_active and subscription_active %}bg-green-100{% else %}bg-red-100{% endif %}"
                         id="status-icon-bg">
-                        <svg class="w-6 h-6 {% if ai_config.is_active %}text-green-600{% else %}text-red-600{% endif %}"
+                        <svg class="w-6 h-6 {% if ai_config.is_active and subscription_active %}text-green-600{% else %}text-red-600{% endif %}"
                             id="status-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -90,12 +93,27 @@
                                 Power</label>
                             <p class="text-xs text-gray-500 mt-1">Turn your AI agent on or off</p>
                         </div>
+                        {% if not subscription_active %}
+                        <!-- Subscription Expired State -->
+                        <div class="flex items-center space-x-2">
+                            <span
+                                class="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">Subscription
+                                Expired</span>
+                            <label class="relative inline-flex items-center cursor-not-allowed opacity-50">
+                                <input type="checkbox" disabled class="sr-only peer">
+                                <div
+                                    class="w-14 h-7 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all">
+                                </div>
+                            </label>
+                        </div>
+                        {% else %}
                         <label for="ai-toggle" class="relative inline-flex items-center cursor-pointer">
                             {{ form.is_active }}
                             <div
                                 class="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-green-400 peer-checked:to-green-600">
                             </div>
                         </label>
+                        {% endif %}
                     </div>
 
                     <div>

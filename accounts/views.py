@@ -312,11 +312,16 @@ def ai_agent_view(request):
     
     webhook_url = ai_config.get_webhook_url()
     
+    # Check subscription status
+    subscription_active = True
+    if profile:
+        subscription_active = profile.is_subscription_active()
 
     return render(request, 'accounts/ai_agent.html', {
         'form': form,
         'webhook_url': webhook_url,
-        'ai_config': ai_config
+        'ai_config': ai_config,
+        'subscription_active': subscription_active
     })
 
 
