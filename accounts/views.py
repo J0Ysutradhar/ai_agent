@@ -233,11 +233,51 @@ def ai_agent_view(request):
     
     webhook_url = ai_config.get_webhook_url()
     
+
     return render(request, 'accounts/ai_agent.html', {
         'form': form,
         'webhook_url': webhook_url,
         'ai_config': ai_config
     })
+
+
+@login_required
+def delete_comment_view(request):
+    """Delete a Facebook comment using the Graph API"""
+    if request.method == 'POST':
+        comment_id = request.POST.get('comment_id', '').strip()
+        
+        if not comment_id:
+            messages.error(request, 'Please provide a valid Comment ID.')
+            return redirect('report')
+            
+        try:
+            # Get user's AI config for the access token
+            ai_config = AIAgentConfig.objects.get(user=request.user)
+            access_token = ai_config.facebook_page_api
+            
+            if not access_token:
+                messages.error(request, 'Facebook Page API token is missing. Please configure your AI agent first.')
+                return redirect('ai_agent')
+            
+            # Call Facebook Graph API
+            url = f"https://graph.facebook.com/v24.0/{comment_id}?access_token={access_token}"
+            response = requests.delete(url)
+            
+            if response.status_code == 200:
+                messages.success(request, f'Comment {comment_id} deleted successfully!')
+            else:
+                error_data = response.json()
+                error_msg = error_data.get('error', {}).get('message', 'Unknown error')
+                messages.error(request, f'Failed to delete comment: {error_msg}')
+                
+        except AIAgentConfig.DoesNotExist:
+            messages.error(request, 'AI Agent configuration not found.')
+            return redirect('ai_agent')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            
+    return redirect('report')
 
 
 @login_required
