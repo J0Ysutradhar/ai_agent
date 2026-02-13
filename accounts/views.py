@@ -293,6 +293,56 @@ def feed_view(request):
 
 
 @login_required
+def create_post_view(request):
+    """Create a post on the user's Facebook Page using the Graph API"""
+    if request.method == 'POST':
+        message = request.POST.get('message', '').strip()
+        image = request.FILES.get('image')
+
+        if not message and not image:
+            messages.error(request, 'Please provide a message or an image for the post.')
+            return redirect('feed')
+
+        try:
+            ai_config = AIAgentConfig.objects.get(user=request.user)
+            page_id = ai_config.facebook_page_id
+            access_token = ai_config.facebook_page_api
+
+            if not page_id or not access_token:
+                messages.error(request, 'Facebook Page ID or API key is missing. Please configure your AI Agent first.')
+                return redirect('ai_agent')
+
+            if image:
+                # Photo post: POST /{page_id}/photos
+                url = f"https://graph.facebook.com/v24.0/{page_id}/photos"
+                files = {'source': (image.name, image.read(), image.content_type)}
+                data = {'access_token': access_token}
+                if message:
+                    data['caption'] = message
+                response = requests.post(url, data=data, files=files)
+            else:
+                # Text-only post: POST /{page_id}/feed
+                url = f"https://graph.facebook.com/v24.0/{page_id}/feed"
+                data = {'message': message, 'access_token': access_token}
+                response = requests.post(url, data=data)
+
+            if response.status_code == 200:
+                messages.success(request, 'Post published successfully!')
+            else:
+                err_data = response.json()
+                error_msg = err_data.get('error', {}).get('message', 'Unknown error')
+                messages.error(request, f'Failed to publish post: {error_msg}')
+
+        except AIAgentConfig.DoesNotExist:
+            messages.error(request, 'AI Agent configuration not found.')
+            return redirect('ai_agent')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+
+    return redirect('feed')
+
+
+@login_required
 def delete_comment_view(request):
     """Delete a Facebook comment using the Graph API"""
     if request.method == 'POST':

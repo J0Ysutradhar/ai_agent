@@ -12,6 +12,7 @@ urlpatterns = [
     path('ai-agent/', views.ai_agent_view, name='ai_agent'),
 
     path('feed/', views.feed_view, name='feed'),
+    path('create-post/', views.create_post_view, name='create_post'),
     path('report/', views.report_view, name='report'),
     path('delete-comment/', views.delete_comment_view, name='delete_comment'),
     path('kyc-required/', views.kyc_required_view, name='kyc_required'),
