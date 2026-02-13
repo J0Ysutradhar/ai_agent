@@ -74,6 +74,7 @@
                 </span>
             </h1>
             <p class="text-gray-500 mt-2">Real-time data from your Facebook Page</p>
+            <p id="last-refresh" class="text-xs text-gray-400 mt-1"></p>
         </div>
 
 
@@ -136,7 +137,7 @@
     <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         {% if data %}
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table id="report-table" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         {% for col in columns %}
@@ -165,7 +166,8 @@
 
         <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div id="pagination-controls"
+            class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
             <div class="text-sm text-gray-500">
                 Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
             </div>
@@ -196,7 +198,7 @@
             </div>
         </div>
         {% else %}
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
+        <div id="pagination-controls" class="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-500">
             Showing {{ data|length }} records
         </div>
         {% endif %}
@@ -232,4 +234,103 @@
     </div>
     {% endif %}
 </div>
+
+{% if google_sheet_id %}
+<script>
+    // Auto-refresh report table every 30 seconds
+    const REFRESH_INTERVAL = 30000; // 30 seconds
+    let refreshTimer = null;
+
+    function getCurrentParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            page: params.get('page') || '1',
+            q: params.get('q') || ''
+        };
+    }
+
+    function refreshTable() {
+        const params = getCurrentParams();
+        let url = '{% url "report_data_api" %}?page=' + params.page;
+        if (params.q) url += '&q=' + encodeURIComponent(params.q);
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) return;
+
+                // Update table header
+                const thead = document.querySelector('#report-table thead tr');
+                if (thead) {
+                    thead.innerHTML = data.columns.map(col =>
+                        `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">${col}</th>`
+                    ).join('');
+                }
+
+                // Update table body
+                const tbody = document.querySelector('#report-table tbody');
+                if (tbody) {
+                    if (data.data.length > 0) {
+                        tbody.innerHTML = data.data.map(row =>
+                            `<tr class="hover:bg-gray-50 transition-colors duration-150">${row.map(cell =>
+                                `<td class="px-6 py-4 text-sm text-gray-700 whitespace-normal break-words max-w-xs">${cell}</td>`
+                            ).join('')
+                            }</tr>`
+                        ).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="100" class="px-6 py-12 text-center text-gray-500">No data found</td></tr>';
+                    }
+
+                    // Flash effect to indicate update
+                    tbody.style.opacity = '0.6';
+                    setTimeout(() => { tbody.style.transition = 'opacity 0.3s'; tbody.style.opacity = '1'; }, 50);
+                }
+
+                // Update pagination
+                const paginationEl = document.getElementById('pagination-controls');
+                if (paginationEl) {
+                    if (data.total_pages > 1) {
+                        const prevLink = data.has_previous
+                            ? `<a href="?page=${data.page - 1}${params.q ? '&q=' + params.q : ''}" class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Previous</a>`
+                            : `<span class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">Previous</span>`;
+                        const nextLink = data.has_next
+                            ? `<a href="?page=${data.page + 1}${params.q ? '&q=' + params.q : ''}" class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Next</a>`
+                            : `<span class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">Next</span>`;
+
+                        paginationEl.innerHTML = `
+                            <div class="text-sm text-gray-500">Showing page ${data.page} of ${data.total_pages}</div>
+                            <div class="flex space-x-2">${prevLink}${nextLink}</div>
+                        `;
+                        paginationEl.className = 'px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between';
+                    } else {
+                        paginationEl.innerHTML = `<span class="text-sm text-gray-500">Showing ${data.data.length} records</span>`;
+                        paginationEl.className = 'px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-500';
+                    }
+                }
+
+                // Update last refresh timestamp
+                const tsEl = document.getElementById('last-refresh');
+                if (tsEl) {
+                    const now = new Date();
+                    tsEl.textContent = 'Last updated: ' + now.toLocaleTimeString();
+                }
+            })
+            .catch(err => console.warn('Auto-refresh failed:', err));
+    }
+
+    // Start auto-refresh
+    refreshTimer = setInterval(refreshTable, REFRESH_INTERVAL);
+
+    // Pause when tab is hidden, resume when visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(refreshTimer);
+        } else {
+            refreshTable(); // Immediately refresh on return
+            refreshTimer = setInterval(refreshTable, REFRESH_INTERVAL);
+        }
+    });
+</script>
+{% endif %}
+
 {% endblock %}

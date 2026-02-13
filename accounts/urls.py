@@ -14,6 +14,7 @@ urlpatterns = [
     path('feed/', views.feed_view, name='feed'),
     path('create-post/', views.create_post_view, name='create_post'),
     path('report/', views.report_view, name='report'),
+    path('report-data/', views.report_data_api, name='report_data_api'),
     path('delete-comment/', views.delete_comment_view, name='delete_comment'),
     path('kyc-required/', views.kyc_required_view, name='kyc_required'),
 

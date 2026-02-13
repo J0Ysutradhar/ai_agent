@@ -100,6 +100,57 @@ def report_view(request):
     })
 
 
+@login_required
+def report_data_api(request):
+    """JSON API endpoint for auto-refreshing report table data"""
+    from django.http import JsonResponse
+
+    ai_config, _ = AIAgentConfig.objects.get_or_create(user=request.user)
+    sheet_id = ai_config.google_sheet_id
+
+    if not sheet_id:
+        return JsonResponse({'error': 'No sheet ID configured'}, status=400)
+
+    try:
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+        response = requests.get(url)
+        response.raise_for_status()
+
+        df = pd.read_csv(io.BytesIO(response.content), encoding='utf-8')
+
+        query = request.GET.get('q', '').strip()
+        if query:
+            mask = df.astype(str).apply(lambda x: x.str.contains(query, case=False, na=False)).any(axis=1)
+            df = df[mask]
+
+        columns = df.columns.tolist()
+        df = df.iloc[::-1]
+        df = df.fillna('')
+        data_list = df.values.tolist()
+
+        # Pagination
+        page_number = int(request.GET.get('page', 1))
+        per_page = 20
+        total_pages = max(1, (len(data_list) + per_page - 1) // per_page)
+        page_number = min(page_number, total_pages)
+        start = (page_number - 1) * per_page
+        end = start + per_page
+        page_data = data_list[start:end]
+
+        return JsonResponse({
+            'columns': columns,
+            'data': page_data,
+            'page': page_number,
+            'total_pages': total_pages,
+            'total_records': len(data_list),
+            'has_previous': page_number > 1,
+            'has_next': page_number < total_pages,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 
 def register_view(request):
     """Handle user registration"""
