@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import CustomUser, UserProfile, AIAgentConfig
+from .models import CustomUser, UserProfile, AIAgentConfig, SubscriptionHistory
 
 
 class CustomUserAdmin(UserAdmin):
@@ -25,12 +25,22 @@ class CustomUserAdmin(UserAdmin):
     ordering = ['email']
 
 
+
+class SubscriptionHistoryInline(admin.TabularInline):
+    model = SubscriptionHistory
+    extra = 0
+    readonly_fields = ['start_date', 'package_name', 'expiry_date', 'created_at']
+    can_delete = False
+    ordering = ('-created_at',)
+
+
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'kyc_status', 'kyc_document_link', 'subscription_expiry', 'package_name']
     list_filter = ['kyc_status', 'package_name']
     actions = ['approve_kyc', 'reject_kyc', 'assign_7_days', 'assign_15_days', 'assign_30_days']
     readonly_fields = ['kyc_document_preview']
+    inlines = [SubscriptionHistoryInline]
     
     def kyc_document_link(self, obj):
         from django.utils.html import format_html
@@ -91,10 +101,21 @@ class UserProfileAdmin(admin.ModelAdmin):
         from datetime import timedelta
         
         expiry_date = timezone.now() + timedelta(days=days)
-        updated_count = queryset.update(
-            subscription_expiry=expiry_date,
-            package_name=package_name
-        )
+        
+        updated_count = 0
+        for profile in queryset:
+            profile.subscription_expiry = expiry_date
+            profile.package_name = package_name
+            profile.save()
+            
+            # Create history record
+            SubscriptionHistory.objects.create(
+                profile=profile,
+                package_name=package_name,
+                expiry_date=expiry_date
+            )
+            updated_count += 1
+            
         self.message_user(request, f"{updated_count} users assigned {package_name} package.")
     
     @admin.action(description="Assign 7 Days Package")
@@ -108,8 +129,11 @@ class UserProfileAdmin(admin.ModelAdmin):
     @admin.action(description="Assign 30 Days Package")
     def assign_30_days(self, request, queryset):
         self.assign_days(request, queryset, 30, "30 Days Pack")
-
+ 
 
 admin.site.register(CustomUser, CustomUserAdmin)
 # admin.site.register(UserProfile) # Replaced with custom admin class
 admin.site.register(AIAgentConfig)
+
+# Custom Admin Dashboard Template
+admin.site.index_template = 'admin/custom_dashboard.html'
