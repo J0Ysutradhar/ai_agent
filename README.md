@@ -11,6 +11,10 @@ A modern, responsive Django web application with user authentication, profile ma
 - ✅ **Email Notifications**: Automatic emails for KYC status changes (Approved/Rejected)
 - ✅ **Public API**: Extended endpoints for retrieving user configuration and status
 - ✅ **Subscription System**: Admin-assigned time packages (7, 15, 30 days) with auto-expiration
+- ✅ **Phone Number & Business Info**: Collects contact and business details for professional profiles
+- ✅ **Public Privacy Policy**: Auto-generated, theme-matched privacy policy page for each user
+- ✅ **Subscription History**: Admin tracks all package changes and assignments
+- ✅ **Admin Dashboard**: Custom "New Users Today" widget for quick onboarding tracking
 - ✅ **Modern UI**: Polished interface with Tailwind CSS and responsive design
 - ✅ **SQLite3 Database**: Lightweight and easy to set up
 
@@ -21,7 +25,8 @@ The application includes a built-in subscription management system:
 1. **Admin Assignment**: Admins can select users in the Django admin panel and assign 7, 15, or 30-day packages.
 2. **Dashboard Tracking**: Users can see their active package and expiration date on the dashboard.
 3. **Access Control**: Middleware automatically blocks access to the panel once the subscription expires.
-4. **Expiration Handling**: Expired users are redirected to a "Package Expired" page with recharge instructions.
+4. **Expiration Handling**: Expired users are redirected to a "Package Expired" page. AI Agent is automatically disabled.
+5. **History Tracking**: All package assignments are logged in the admin panel for audit purposes.
 
 ## Tech Stack
 
@@ -68,15 +73,16 @@ python manage.py runserver
 
 ### Registration
 1. Navigate to the registration page
-2. Enter your email and password
+2. Enter your email, phone number, and password
 3. Click "Create Account"
 4. You'll be automatically logged in and redirected to the dashboard
 
 ### Profile Management
 1. Click "Profile" in the sidebar
 2. Upload a profile picture
-3. Enter your name and mobile number
+3. Enter your name, mobile number, and business information
 4. Click "Save Changes"
+5. **Privacy Policy**: A public link to your privacy policy is generated automatically. You can copy it to share.
 
 ### AI Agent Configuration
 1. **KYC Verification**: You must be Verified to access this page.
@@ -131,6 +137,8 @@ userpanel/
 │   ├── forms.py
 │   ├── urls.py
 │   ├── admin.py
+│   ├── templatetags/
+│   │   └── admin_dashboard_extras.py
 │   └── templates/
 │       ├── base.html
 │       └── accounts/
@@ -138,7 +146,11 @@ userpanel/
 │           ├── login.html
 │           ├── dashboard.html
 │           ├── profile.html
-│           └── ai_agent.html
+│           ├── ai_agent.html
+│           └── privacy_policy.html
+├── templates/
+│   └── admin/
+│       └── custom_dashboard.html
 ├── static/
 └── media/
 ```
