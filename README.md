@@ -1,4 +1,4 @@
-# Django User Panel Application
+# Page Pilot a Django User Panel Application
 
 A modern, responsive Django web application with user authentication, profile management, and AI agent configuration.
 
